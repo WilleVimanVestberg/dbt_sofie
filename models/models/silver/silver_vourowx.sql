@@ -1,45 +1,68 @@
 {{ config(
-    materialized = "table",
-    unique_key = "cid",
-    incremental_strategy = "merge"
+    materialized = "incremental",
+    incremental_strategy = "merge",
+    unique_key = "record_hash"
 ) }}
 
-SELECT 
-    cid AS cid,
-    year AS year,
-    period AS month,
-    serie AS serie,
-    vouno AS voucher_number,
-    rowno AS row_number,
-    date AS created_timestamp,
-    altered AS altered,
-    account AS account,
-    resacc AS res_acc,
-    currency AS currency,
-    amount AS amount,
-    foramount AS for_amount,
-    number AS number,
-    o1 AS property_number,
-    o2 AS type_code,
-    o3 AS project_number,
-    o4 AS cost_center,
-    o5 AS property_id_internal,
-    o6 AS project_task,
-    o7 AS vat_code_07,
-    o8 AS o8,
-    xfreetext AS free_text,
-    extraamount AS extra_amount,
-    group1 AS group1,
-    group2 AS group2,
-    group3 AS group3,
-    group4 AS group4,
-    vatcode AS vat_code,
-    crtype AS cr_type,
-    creator AS creator,
-    basecurrency AS base_currency,
-    baseamount AS base_amount,
-    timestamp AS binary_timestamp,
-    ingestion_id AS ingestion_id,
-    timestamp_raw_ingestion AS timestamp_raw_ingestion,
-    source_file AS source_file
+SELECT
+    cid,
+    year,
+    period,
+    serie,
+    vouno,
+    rowno,
+    date,
+    altered,
+    account,
+    resacc,
+    currency,
+    amount,
+    foramount,
+    number,
+    o1,
+    o2,
+    o3,
+    o4,
+    o5,
+    o6,
+    o7,
+    o8,
+    xfreetext,
+    extraamount,
+    group1,
+    group2,
+    group3,
+    group4,
+    vatcode,
+    crtype,
+    creator,
+    basecurrency,
+    baseamount,
+    ingestion_id,
+    timestamp_raw_ingestion,
+    source_file,
+
+    {{ record_hash([
+        'cid',
+        'year',
+        'period',
+        'o1',
+        'o3', 
+        'serie',
+        'vouno',
+        'rowno',
+        'account',
+        'amount',
+        'foramount',
+        'currency'
+    ]) }} AS record_hash,
+
+    current_timestamp() AS binary_timestamp
+
 FROM {{ source('bronze', 'visma_vourowx') }}
+
+{% if is_incremental() %}
+WHERE timestamp_raw_ingestion > (
+    SELECT MAX(timestamp_raw_ingestion) FROM {{ this }}
+)
+{% endif %}
