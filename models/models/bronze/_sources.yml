@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: bronze
+    catalog: hemso_dev
+    schema: bronze
+    tables:
+      - name: propertymanager_properties
+      - name: dedu_dedu
+      - name: dedu_rekyl
+      - name: visma_vourowx
+      - name: visma_objectx
+
+
+
+      
+# models:
+#   - name: vitec_energy_usage
+#     columns:
+#       - name: vitec_id
+#         tests:
+#           - unique
+#           - not_null
