@@ -1,6 +1,7 @@
 {{ config(
     materialized = "table",
-    schema = "silver"
+    unique_key = "property_id",
+    incremental_strategy = "merge"
 ) }}
 
 WITH
