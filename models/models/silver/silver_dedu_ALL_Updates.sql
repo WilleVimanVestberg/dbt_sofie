@@ -227,6 +227,10 @@ selected AS (
         -- Simple data cleaning of new columns
         NULLIF(TRIM(ack.CreatedBy), '') AS ack_CreatedBy,
         NULLIF(TRIM(ack.CreatedDate), '') AS ack_CreatedDate,
+        coalesce(
+          try_to_timestamp(ack.CreatedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+          try_to_timestamp(ack.CreatedDate, "yyyy-MM-dd'T'HH:mm:ss")
+        ) AS ack_created_timestamp,
         ack.DeduUserId AS ack_DeduUserId,
         ack.Id AS ack_Id,
         NULLIF(TRIM(ack.LastUpdated), '') AS ack_LastUpdated,
@@ -283,7 +287,6 @@ selected AS (
         CreatedBy,
         CreatedDate,
         LastUpdated,
-
         -- Metadata
         ingestion_id,
         timestamp_raw_ingestion,
@@ -305,7 +308,16 @@ dedu_partitioned AS (
 
 dedu_dedup AS (
     SELECT
-        *
+        *,
+        CASE 
+          WHEN MAX(CASE WHEN TaskStatusId = 62 THEN 1 ELSE 0 END)
+              OVER (PARTITION BY OrderNumber 
+                    ORDER BY ack_created_timestamp 
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) = 1
+          THEN MIN(CASE WHEN TaskStatusId = 62 THEN ack_created_timestamp END)
+              OVER (PARTITION BY OrderNumber)
+        ELSE NULL
+        END AS order_completed_timestamp
     FROM dedu_partitioned
     WHERE rn = 1
 )
@@ -313,10 +325,21 @@ dedu_dedup AS (
 SELECT 
     {{ select_columns_except(all_columns, ['GeoreferencedData']) }}, --All except rn
     GeoreferencedData.Geography.Wkt AS wkt,
+
+    DATEDIFF(
+        CAST(order_completed_timestamp AS DATE),
+        CAST(ack_created_timestamp AS DATE)
+    ) AS days_to_completed,
+
+    CAST(
+        (UNIX_TIMESTAMP(order_completed_timestamp)
+        - UNIX_TIMESTAMP(ack_created_timestamp)) / 3600
+        AS INT
+    ) AS hours_to_completed,
+
     CAST(split(trim(both '()' FROM substring(GeoreferencedData.Geography.Wkt, 7)), ' ')[0] AS DOUBLE) AS longitude,
     CAST(split(trim(both '()' FROM substring(GeoreferencedData.Geography.Wkt, 7)), ' ')[1] AS DOUBLE) AS latitude
 FROM dedu_dedup
-
 
 
 
