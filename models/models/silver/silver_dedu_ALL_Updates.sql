@@ -66,7 +66,6 @@
     'source'
 ] %}
 
-
 WITH dedu_dedu AS (
   SELECT 
       AcknowledgmentJournals, 
@@ -197,7 +196,6 @@ dedu_union AS (
   SELECT * FROM dedu_rekyl
 ),
 
-
 Dedu_union_selected AS (  
     SELECT
         monotonically_increasing_id() AS update_row_id,
@@ -325,7 +323,7 @@ dedu_dedup AS (
 SELECT 
     {{ select_columns_except(all_columns, ['GeoreferencedData']) }}, --All except rn
     GeoreferencedData.Geography.Wkt AS wkt,
-
+    order_completed_timestamp,
     DATEDIFF(
         CAST(order_completed_timestamp AS DATE),
         CAST(ack_created_timestamp AS DATE)

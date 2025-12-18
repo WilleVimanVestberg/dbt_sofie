@@ -94,4 +94,4 @@ SELECT
     false AS is_end_of_fiscal_half_year,
     false AS is_start_of_fiscal_quarter,
     false AS is_end_of_fiscal_quarter,
-    false AS is_leap_year
+    false AS is_leap_year a

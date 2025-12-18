@@ -1,3 +1,5 @@
-{% macro trim_and_nullify(column_name) %}
-    NULLIF(TRIM({{ column_name }}), '')
+{% macro trim_and_nullify(columns) %}
+    {%- for col in columns %}
+        NULLIF(TRIM({{ col }}), '')
+    {%- endfor %}
 {% endmacro %}
