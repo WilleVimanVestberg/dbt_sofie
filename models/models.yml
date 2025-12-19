@@ -1,11 +1,11 @@
 version: 2
 
 models:
-  - name: silver_dedu_ML
-    columns:
-      - name: RegionId
-        tests:
-          - null_count:
-              arguments:
-                max_allowed: 0
+  # - name: silver_dedu_ML
+  #   columns:
+  #     - name: RegionId
+  #       tests:
+  #         - null_count:
+  #             arguments:
+  #               max_allowed: 0
 

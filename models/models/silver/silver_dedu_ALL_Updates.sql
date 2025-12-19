@@ -260,8 +260,6 @@ dedu_dedup AS (
 )
 
 SELECT 
-    -- {{ select_columns_except(all_columns, ['GeoreferencedData']) }}, --All except rn
-     -- Acknowledgement info
   COALESCE(ack_CreatedBy, 'Okänd') AS ack_created_by,
   coalesce(
     try_to_timestamp(ack_CreatedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
