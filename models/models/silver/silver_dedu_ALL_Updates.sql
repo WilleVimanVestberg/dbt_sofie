@@ -4,67 +4,6 @@
     incremental_strategy = "merge"
 ) }}
 
-{% set all_columns = [
-    'update_row_id',
-    'ack_CreatedBy',
-    'ack_CreatedDate',
-    'ack_DeduUserId',
-    'ack_Id',
-    'ack_LastUpdated',
-    'ack_LastUpdatedBy',
-    'ack_Message',
-    'ack_OrderNumber',
-    'ack_RegTime',
-    'ack_Signature',
-    'ack_Type',
-    'CreatedBy',
-    'CreatedDate',
-    'LastUpdated',
-    'LastUpdatedBy',
-    'LatestWorkUpdate',
-    'Description',
-    'ElementDescription',
-    'ElementId',
-    'ElementName',
-    'GeoreferencedData',
-    'GuidId',
-    'OrderNumber',
-    'Placement',
-    'PlannedDate',
-    'ProfessionId',
-    'ProfessionName',
-    'PropertyDescription',
-    'PropertyId',
-    'PropertyName',
-    'PropertyName2',
-    'RegTime',
-    'RegionDescription',
-    'RegionId',
-    'RegionName',
-    'SpaceId',
-    'SpaceName',
-    'SpatiSystemDescription',
-    'SpatiSystemId',
-    'SpatiSystemName',
-    'StructureDescription',
-    'StructureId',
-    'StructureName',
-    'TaskCategoryId',
-    'TaskCategoryName',
-    'TaskPriorityId',
-    'TaskPriorityName',
-    'TaskStatusFactor',
-    'TaskStatusId',
-    'TaskStatusName',
-    'TaskSubCategoryId',
-    'TaskSubCategoryName',
-    'TaskTypeId',
-    'TaskTypeName',
-    'ingestion_id',
-    'timestamp_raw_ingestion',
-    'source_file',
-    'source'
-] %}
 
 WITH dedu_dedu AS (
   SELECT 
@@ -321,22 +260,123 @@ dedu_dedup AS (
 )
 
 SELECT 
-    {{ select_columns_except(all_columns, ['GeoreferencedData']) }}, --All except rn
-    GeoreferencedData.Geography.Wkt AS wkt,
-    order_completed_timestamp,
-    DATEDIFF(
-        CAST(order_completed_timestamp AS DATE),
-        CAST(ack_created_timestamp AS DATE)
-    ) AS days_to_completed,
+    -- {{ select_columns_except(all_columns, ['GeoreferencedData']) }}, --All except rn
+     -- Acknowledgement info
+  COALESCE(ack_CreatedBy, 'Okänd') AS ack_created_by,
+  coalesce(
+    try_to_timestamp(ack_CreatedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+    try_to_timestamp(ack_CreatedDate, "yyyy-MM-dd'T'HH:mm:ss")
+  ) AS ack_created_timestamp,
+  COALESCE(ack_DeduUserId, -1) AS ack_dedu_user_id,
+  COALESCE(ack_Id, -1) AS ack_id,
+  coalesce(
+		try_to_timestamp(ack_LastUpdated, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(ack_LastUpdated, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS ack_last_updated_timestamp,
+  COALESCE(ack_LastUpdatedBy, 'Okänd') AS ack_last_updated_by,
+  COALESCE(ack_Message, 'Okänd') AS ack_message,
+  COALESCE(ack_OrderNumber, -1) AS ack_order_number,
+  coalesce(
+		try_to_timestamp(ack_RegTime, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(ack_RegTime, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS ack_registered_timestamp,
+  COALESCE(ack_Signature, 'Okänd') AS ack_signature,
+  COALESCE(ack_type, -1) AS ack_type,
 
-    CAST(
-        (UNIX_TIMESTAMP(order_completed_timestamp)
-        - UNIX_TIMESTAMP(ack_created_timestamp)) / 3600
-        AS INT
-    ) AS hours_to_completed,
+  -- Order info
+  COALESCE(CreatedBy, 'Okänd') AS order_created_by,
+  coalesce(
+		try_to_timestamp(CreatedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(CreatedDate, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS order_created_timestamp,
+  coalesce(
+		try_to_timestamp(LastUpdated, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(LastUpdated, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS order_last_updated_timestamp,
+  COALESCE(LastUpdatedBy, 'Okänd') AS order_last_updated_by,
+  coalesce(
+		try_to_timestamp(LatestWorkUpdate, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(LatestWorkUpdate, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS order_latest_work_update_timestamp,
+  COALESCE(Description, 'Okänd') AS order_description,
+  COALESCE(ElementDescription, 'Okänd') AS order_element_description,
+  COALESCE(ElementId, -1) AS order_element_id,
+  COALESCE(ElementName, 'Okänd') AS order_element_name,
+  COALESCE(GuidId, 'Okänd') AS order_guid_id,
+  COALESCE(OrderNumber, -1) AS order_number,
+  COALESCE(Placement, 'Okänd') AS order_placement_description,
+  coalesce(
+		try_to_timestamp(PlannedDate, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(PlannedDate, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS order_planned_timestamp,
+  COALESCE(ProfessionId, -1) AS order_profession_id,
+  COALESCE(ProfessionName, 'Okänd') AS order_profession_name,
+  coalesce(
+		try_to_timestamp(RegTime, "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+		try_to_timestamp(RegTime, "yyyy-MM-dd'T'HH:mm:ss")
+	) AS order_registered_timestamp,
+  COALESCE(TaskCategoryId, -1) AS task_category_id,
+  COALESCE(TaskCategoryName, 'Okänd') AS task_category_name,
+  COALESCE(TaskPriorityId, -1) AS task_priority_id,
+  CASE
+    WHEN TaskPriorityName = 'VÄLJ PRIORITET' THEN 'EJ ANGIVEN'
+    WHEN TaskPriorityName LIKE 'Prio %' 
+        THEN UPPER(regexp_extract(TaskPriorityName, '(Prio [0-9]+)', 1))
+    ELSE COALESCE(TaskPriorityName, 'Okänd') 
+  END AS task_priority_name,
+  CASE
+    WHEN TaskPriorityName LIKE 'Prio %' THEN regexp_extract(TaskPriorityName, 'Prio [0-9]+ (.*)', 1)
+    ELSE COALESCE(TaskPriorityName, 'Okänd')
+  END AS task_priority_description,
+  COALESCE(TaskStatusFactor, -1) AS task_status_factor,
+  COALESCE(TaskStatusId, -1) AS task_status_id,
+  COALESCE(TaskStatusName, 'Okänd') AS task_status_name,
+  COALESCE(TaskSubCategoryId, -1) AS task_sub_category_id,
+  COALESCE(TaskSubCategoryName, 'Okänd') AS task_sub_category_name,
+  COALESCE(TaskTypeId, -1) AS task_type_id,
+  COALESCE(TaskTypeName, 'Okänd') AS task_type_name,
 
-    CAST(split(trim(both '()' FROM substring(GeoreferencedData.Geography.Wkt, 7)), ' ')[0] AS DOUBLE) AS longitude,
-    CAST(split(trim(both '()' FROM substring(GeoreferencedData.Geography.Wkt, 7)), ' ')[1] AS DOUBLE) AS latitude
+  -- Property info
+  COALESCE(PropertyDescription, 'Okänd') AS property_description,
+  COALESCE(PropertyId, -1) AS dedu_property_id,
+  COALESCE(PropertyName, 'Okänd') AS property_name,
+  COALESCE(PropertyName2, 'Okänd') AS property_number,
+  COALESCE(RegionDescription, 'Okänd') AS region,
+  COALESCE(RegionId, -1) AS region_id,
+  COALESCE(RegionName, 'Okänd') AS region_name,
+  COALESCE(SpatiSystemDescription, 'Okänd') AS spati_system_description,
+  COALESCE(SpatiSystemId, 'Okänd') AS spati_system_id,
+  COALESCE(SpatiSystemName, 'Okänd') AS spati_system_name,
+  COALESCE(StructureDescription, 'Okänd') AS structure_description,
+  COALESCE(StructureId, -1) AS structure_id,
+  COALESCE(StructureName, 'Okänd') AS structure_name,
+  COALESCE(GeoreferencedData.Distance, 'Okänd') AS geo_distance,
+  COALESCE(GeoreferencedData.Geography.CoordinateSystemId, -1) AS geo_coordinate_system_id,
+  COALESCE(GeoreferencedData.Geography.Wkt, 'Okänd') AS geo_wkt,
+  COALESCE(GeoreferencedData.Source, 'Okänd') AS geo_source,
+  
+  -- Metadata
+  update_row_id AS update_row_id,
+  ingestion_id AS ingestion_id,
+  timestamp_raw_ingestion AS timestamp_raw_ingestion,
+  source_file AS source_file,
+  source AS source_system
+  
+    -- GeoreferencedData.Geography.Wkt AS wkt,
+    -- order_completed_timestamp,
+    -- DATEDIFF(
+    --     CAST(order_completed_timestamp AS DATE),
+    --     CAST(ack_created_timestamp AS DATE)
+    -- ) AS days_to_completed,
+
+    -- CAST(
+    --     (UNIX_TIMESTAMP(order_completed_timestamp)
+    --     - UNIX_TIMESTAMP(ack_created_timestamp)) / 3600
+    --     AS INT
+    -- ) AS hours_to_completed,
+
+    -- CAST(split(trim(both '()' FROM substring(GeoreferencedData.Geography.Wkt, 7)), ' ')[0] AS DOUBLE) AS longitude,
+    -- CAST(split(trim(both '()' FROM substring(GeoreferencedData.Geography.Wkt, 7)), ' ')[1] AS DOUBLE) AS latitude
 FROM dedu_dedup
 
 

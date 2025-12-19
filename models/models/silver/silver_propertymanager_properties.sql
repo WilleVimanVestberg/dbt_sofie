@@ -68,9 +68,9 @@ WITH base AS (
 SELECT * 
 FROM deduped
 
-{% if is_incremental() %}
-    -- endast nya eller uppdaterade rader baserat på primary key / timestamp
-    WHERE property_id NOT IN (
-        SELECT property_id FROM {{ this }}
-    )
-{% endif %}
+-- {% if is_incremental() %}
+--     -- endast nya eller uppdaterade rader baserat på primary key / timestamp
+--     WHERE property_id NOT IN (
+--         SELECT property_id FROM {{ this }}
+--     )
+-- {% endif %}
